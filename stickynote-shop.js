@@ -140,7 +140,24 @@ function refresh() {
   var octx = ocanvas.getContext('2d');
   octx.scale(ocanvas.offsetWidth/width, ocanvas.offsetHeight/height);
 
-  var idata = ictx.getImageData(0, 0, width, height).data;
+  var imageData = ictx.getImageData(0, 0, width, height);
+  var idata = imageData.data;
+
+  // apply alpha channel
+  for (var y = 0; y<height; y++) {
+    for (var x = 0; x<width; x++) {
+      var offset = (y*height + x)*4;
+      var alpha = idata[offset + 3];
+      // Optimization: if no thransperancy then don't do anything.
+      if (alpha !== 255) {
+        var mult = 1 - (alpha / 255.0);
+        idata[offset + 0] = idata[offset + 0] + (255 - idata[offset + 0])*mult;
+        idata[offset + 1] = idata[offset + 1] + (255 - idata[offset + 1])*mult;
+        idata[offset + 2] = idata[offset + 2] + (255 - idata[offset + 2])*mult;
+        idata[offset + 3] = 255; // for completeness
+      }
+    }
+  }
 
   var widthInSN = ~~(width/stickyNoteWidth);
   var heightInSN = ~~(height/stickyNoteHeight);
