@@ -71,7 +71,7 @@ function main() {
 
   document.getElementById('image-shrink-algo').addEventListener('change', refresh, false);
 
-  setInputImage('https://pixabay.com/get/1974bf7f65c9e840d943/1446295043/viking-ship-34717_1280.png?direct');
+  setInputImage('images/ship-viking-0.png');
   // setInputImage('image.jpg');
 }
 
