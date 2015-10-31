@@ -71,16 +71,32 @@ function main() {
 
   document.getElementById('image-shrink-algo').addEventListener('change', refresh, false);
 
-  setInputImage('img/ship-viking-2.jpg');
+  setInputImage('https://pixabay.com/get/1974bf7f65c9e840d943/1446295043/viking-ship-34717_1280.png?direct');
   // setInputImage('image.jpg');
 }
 
+function cannotLoadInputImage() {
+  window.alert('Cannot load image.');
+}
+
+var corsProxy = 'https://crossorigin.me/';
 function setInputImage(src) {
   img = document.createElement("img");
-                    img.src = src;
+  img.crossOrigin = "Anonymous";
+  img.src = src;
 
   if (img.complete) refresh();
-              else img.addEventListener('load', refresh);
+  else {
+    img.addEventListener('error', function(ev) {
+      if (!src.startsWith('http') || src.startsWith(corsProxy)) {
+        cannotLoadInputImage();
+      } else {
+        console.log('Cannot load the image using a direct request. Trying to load it using a CORS proxy.');
+        setInputImage(corsProxy + src);
+      }
+    });
+    img.addEventListener('load', refresh);
+  }
 }
 
 function refreshPreview() {
