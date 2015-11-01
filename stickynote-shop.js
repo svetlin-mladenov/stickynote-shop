@@ -119,6 +119,56 @@ function SNShop() {
     }
   }
 
+  var prepareForSn = function(imageData) {
+    var height = imageData.height;
+    var width = imageData.width;
+    var idata = imageData.data;
+
+    // apply alpha channel
+    for (var y = 0; y<height; y++) {
+      for (var x = 0; x<width; x++) {
+        var offset = (y*height + x)*4;
+        var alpha = idata[offset + 3];
+        // Optimization: if no thransperancy then don't do anything.
+        if (alpha !== 255) {
+          var mult = 1 - (alpha / 255.0);
+          idata[offset + 0] = idata[offset + 0] + (255 - idata[offset + 0])*mult;
+          idata[offset + 1] = idata[offset + 1] + (255 - idata[offset + 1])*mult;
+          idata[offset + 2] = idata[offset + 2] + (255 - idata[offset + 2])*mult;
+          idata[offset + 3] = 255; // for completeness
+        }
+      }
+    }
+
+    if (typeof getImageColorForRegion.prepare === 'function') {
+      getImageColorForRegion.prepare();
+    }
+  }
+
+  var runSn = function(imageData, octx) {
+    var height = imageData.height;
+    var width = imageData.width;
+    var idata = imageData.data;
+
+    var widthInSN = ~~(width/stickyNoteWidth);
+    var heightInSN = ~~(height/stickyNoteHeight);
+    for (var x = 0; x<widthInSN; x++) {
+      for (var y = 0; y<heightInSN; y++) {
+        var xPixel = x*stickyNoteWidth;
+        var yPixel = y*stickyNoteHeight;
+
+        var imageColor = getImageColorForRegion(idata, xPixel, yPixel, stickyNoteWidth, stickyNoteHeight);
+        var stickyNoteColor = mapToStickyNoteColor(imageColor);
+        // var stickyNoteColor = imageColor;
+
+        var fillColor = '000000' + stickyNoteColor.toString(16);
+        fillColor = fillColor.substr(fillColor.length - 6, 6);
+        octx.fillStyle = '#' + fillColor;
+        octx.fillRect(xPixel, yPixel, stickyNoteWidth, stickyNoteHeight);
+      }
+    }
+  }
+
   var refreshPreview = function() {
     var c = document.getElementById("pcanvas");
                       var ctx=c.getContext("2d");
@@ -138,7 +188,13 @@ function SNShop() {
                       stickyNoteHeight = parseInt(document.getElementById('sticky-height').value);
 
     var imageShrinkAlgoName = document.getElementById('image-shrink-algo').value;
-    getImageColorForRegion = {'topLeft': getImageColorForRegion_topLeft, 'center': getImageColorForRegion_center, 'avarage': getImageColorForRegion_avg ,'fivePoint': getImageColorForRegion_fivePoint, 'centerSquareAvg': getImageColorForRegion_centerSquareAvg}[imageShrinkAlgoName];
+    getImageColorForRegion = {'topLeft': getImageColorForRegion_topLeft,
+                              'center': getImageColorForRegion_center,
+                              'avarage': getImageColorForRegion_avg,
+                              'fivePoint': getImageColorForRegion_fivePoint,
+                              'centerSquareAvg': getImageColorForRegion_centerSquareAvg,
+                              'lanczos': getImageColorForRegion_lanczos,
+                            }[imageShrinkAlgoName];
 
 
     refreshPreview();
@@ -161,44 +217,9 @@ function SNShop() {
     octx.scale(ocanvas.offsetWidth/width, ocanvas.offsetHeight/height);
 
     var imageData = ictx.getImageData(0, 0, width, height);
-    var idata = imageData.data;
 
-    // prepareForSn(imageData);
-    // runSn(imageData);
-
-    // apply alpha channel
-    for (var y = 0; y<height; y++) {
-      for (var x = 0; x<width; x++) {
-        var offset = (y*height + x)*4;
-        var alpha = idata[offset + 3];
-        // Optimization: if no thransperancy then don't do anything.
-        if (alpha !== 255) {
-          var mult = 1 - (alpha / 255.0);
-          idata[offset + 0] = idata[offset + 0] + (255 - idata[offset + 0])*mult;
-          idata[offset + 1] = idata[offset + 1] + (255 - idata[offset + 1])*mult;
-          idata[offset + 2] = idata[offset + 2] + (255 - idata[offset + 2])*mult;
-          idata[offset + 3] = 255; // for completeness
-        }
-      }
-    }
-
-    var widthInSN = ~~(width/stickyNoteWidth);
-    var heightInSN = ~~(height/stickyNoteHeight);
-    for (var x = 0; x<widthInSN; x++) {
-      for (var y = 0; y<heightInSN; y++) {
-        var xPixel = x*stickyNoteWidth;
-        var yPixel = y*stickyNoteHeight;
-
-        var imageColor = getImageColorForRegion(idata, xPixel, yPixel, stickyNoteWidth, stickyNoteHeight);
-        var stickyNoteColor = mapToStickyNoteColor(imageColor);
-        // var stickyNoteColor = imageColor;
-
-        var fillColor = '000000' + stickyNoteColor.toString(16);
-        fillColor = fillColor.substr(fillColor.length - 6, 6);
-        octx.fillStyle = '#' + fillColor;
-        octx.fillRect(xPixel, yPixel, stickyNoteWidth, stickyNoteHeight);
-      }
-    }
+    prepareForSn(imageData);
+    runSn(imageData, octx);
   }
 
   function getImageColorForRegion_topLeft(idata, xPixel, yPixel, regWidth, regHeight) {
@@ -256,6 +277,47 @@ function SNShop() {
   }
   function getImageColorForRegion_centerSquareAvg(idata, xPixel, yPixel, regWidth, regHeight) {
     return getImageColorForRegion_avg(idata, xPixel + (regWidth >> 2), yPixel + (regHeight >> 2), regWidth >> 1, regHeight >> 1);
+  }
+  function getImageColorForRegion_lanczos(idata, xPixel, yPixel, regWidth, regHeight) {
+    var self = getImageColorForRegion_lanczos;
+    var scaledWidth = self.scaledImageData.width;
+
+    var syPixel = yPixel / stickyNoteWidth;
+    var sxPixel = xPixel / stickyNoteWidth;
+
+    var r = self.scaledData[((syPixel * scaledWidth) + sxPixel)*4 + 0];
+    var g = self.scaledData[((syPixel * scaledWidth) + sxPixel)*4 + 1];
+    var b = self.scaledData[((syPixel * scaledWidth) + sxPixel)*4 + 2];
+    return (r << 16) + (g << 8) + (b);
+  }
+  getImageColorForRegion_lanczos.prepare = function(imageData) {
+    var widthInSN = ~~(img.width/stickyNoteWidth);
+
+    var canvas = document.createElement('canvas');
+    var t = new thumbnailer(canvas, img, widthInSN, 3);
+
+    getImageColorForRegion_lanczos.scaledImageData = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
+    getImageColorForRegion_lanczos.scaledData = getImageColorForRegion_lanczos.scaledImageData.data;
+
+    // TODO use the input imageData to prepare the lanczos instead of img. In doing so there will be no need to do this extra alpha channel elimination
+    // apply alpha channel
+    var height = getImageColorForRegion_lanczos.scaledImageData.height;
+    var width = getImageColorForRegion_lanczos.scaledImageData.width;
+    var idata = getImageColorForRegion_lanczos.scaledData;
+    for (var y = 0; y<height; y++) {
+      for (var x = 0; x<width; x++) {
+        var offset = (y*height + x)*4;
+        var alpha = idata[offset + 3];
+        // Optimization: if no thransperancy then don't do anything.
+        if (alpha !== 255) {
+          var mult = 1 - (alpha / 255.0);
+          idata[offset + 0] = idata[offset + 0] + (255 - idata[offset + 0])*mult;
+          idata[offset + 1] = idata[offset + 1] + (255 - idata[offset + 1])*mult;
+          idata[offset + 2] = idata[offset + 2] + (255 - idata[offset + 2])*mult;
+          idata[offset + 3] = 255; // for completeness
+        }
+      }
+    }
   }
   var getImageColorForRegion = getImageColorForRegion_avg;
 

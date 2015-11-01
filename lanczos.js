@@ -1,3 +1,5 @@
+// SOURCE: http://stackoverflow.com/questions/2303690/resizing-an-image-in-an-html5-canvas
+
 // returns a function that calculates lanczos weight
 function lanczosCreate(lobes) {
     return function(x) {
@@ -16,7 +18,7 @@ function thumbnailer(elem, img, sx, lobes) {
     this.canvas = elem;
     elem.width = img.width;
     elem.height = img.height;
-    elem.style.display = "none";
+    // elem.style.display = "none";
     this.ctx = elem.getContext("2d");
     this.ctx.drawImage(img, 0, 0);
     this.img = img;
@@ -33,7 +35,8 @@ function thumbnailer(elem, img, sx, lobes) {
     this.cacheLanc = {};
     this.center = {};
     this.icenter = {};
-    setTimeout(this.process1, 0, this, 0);
+    // setTimeout(this.process1, 0, this, 0);
+    this.process1(this, 0);
 }
 
 thumbnailer.prototype.process1 = function(self, u) {
@@ -73,10 +76,13 @@ thumbnailer.prototype.process1 = function(self, u) {
         self.dest.data[idx + 2] = b / a;
     }
 
-    if (++u < self.dest.width)
-        setTimeout(self.process1, 0, self, u);
-    else
-        setTimeout(self.process2, 0, self);
+    if (++u < self.dest.width) {
+      // setTimeout(self.process1, 0, self, u);
+      self.process1(self, u);
+    } else {
+      // setTimeout(self.process2, 0, self);
+      self.process2(self);
+    }
 };
 thumbnailer.prototype.process2 = function(self) {
     self.canvas.width = self.dest.width;
@@ -94,5 +100,5 @@ thumbnailer.prototype.process2 = function(self) {
         }
     }
     self.ctx.putImageData(self.src, 0, 0);
-    self.canvas.style.display = "block";
+    // self.canvas.style.display = "block";
 };
