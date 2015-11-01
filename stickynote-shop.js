@@ -69,6 +69,18 @@ function main() {
   }
   document.getElementById('input-file').addEventListener('change', handleInputFileSelected, false);
 
+  function handleInputUrlSelected(ev) {
+    var urlElem = document.querySelector('#input-widget input[name=url]')
+    var url = urlElem.value;
+    if (url) {
+      setInputImage(url);
+    } else {
+      // no input. Give focus to the input element
+      urlElem.focus();
+    }
+  }
+  document.querySelector('#input-widget input[name=url-button]').addEventListener('click', handleInputUrlSelected, false);
+
   document.getElementById('image-shrink-algo').addEventListener('change', refresh, false);
 
   setInputImage('images/ship-viking-0.png');
