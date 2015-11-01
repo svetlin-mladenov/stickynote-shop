@@ -1,9 +1,15 @@
 <!DOCTYPE HTML>
 <html>
 	<head>
+		<script src="lanczos.js"></script>
 		<script src="stickynote-shop.js"></script>
+		<script>
+			var sns = new SNShop();
+		</script>
 	</head>
 	<body>
+		<canvas id="dcanvas"></canvas>
+		<image id="dimage" />
 		<canvas id="pcanvas" width="750" style="border:1px solid #d3d3d3;">
 			Your browser does not support the HTML5 canvas tag.
 		</canvas>
@@ -39,11 +45,11 @@
 		</div>
 
 		<canvas id="icanvas" style="border:1px solid #d3d3d3;">
-	                Your browser does not support the HTML5 canvas tag.
-	        </canvas>
+			Your browser does not support the HTML5 canvas tag.
+	  </canvas>
 
 		<script>
-			main();
+			sns.init();
 		</script>
 	</body>
 </html>
