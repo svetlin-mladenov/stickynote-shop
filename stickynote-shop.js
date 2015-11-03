@@ -83,6 +83,7 @@ function SNShop() {
     document.querySelector('#input-widget input[name=url-button]').addEventListener('click', handleInputUrlSelected, false);
 
     document.getElementById('image-shrink-algo').addEventListener('change', refresh, false);
+    document.getElementById('color-compare-algo').addEventListener('change', refresh, false);
 
     setInputImage('images/ship-viking-0.png');
     // setInputImage('image.jpg');
@@ -213,6 +214,11 @@ function SNShop() {
                               'lanczos': getImageColorForRegion_lanczos,
                             }[imageShrinkAlgoName];
 
+    var colorCompareAlgoName = document.getElementById('color-compare-algo').value;
+    colorDiff = {'luma': colorDiff_luma,
+                 'ycrcb': colorDiff_YCbCr,
+                 'rgb-linear': colorDiff_linear,
+                }[colorCompareAlgoName];
 
     refreshPreview();
     document.getElementById('dim-in-stickynotes').innerHTML = '(' + ~~(img.width/stickyNoteWidth) + 'x' + ~~(img.height/stickyNoteHeight) + ')';
