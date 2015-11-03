@@ -98,7 +98,7 @@ function SNShop() {
     ctx.strokeText("Loading ...", 100, 100)
   }
 
-  this.corsProxy = 'https://crossorigin.me/';
+  var corsProxy = 'https://crossorigin.me/';
   var setInputImage = function(src) {
     showLoading();
     img = document.createElement("img");
