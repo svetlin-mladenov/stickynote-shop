@@ -9,20 +9,43 @@ function SNShop() {
   var stickyNoteHeight = 0;
 
   var palettes = [
-    [0xFFFFFF, 0xE9FE1B, 0x7AF133, 0x62BCBD, 0xE52763, 0x8A64DE, 0xF68A03, 0x31A0E7]
+    {
+      colors: [0xFFFFFF, 0xE9FE1B, 0x7AF133, 0x62BCBD, 0xE52763, 0x8A64DE, 0xF68A03, 0x31A0E7],
+      name: 'Sticky Notes',
+      default: true,
+    },
+    {
+      colors: [0xFFFFFF, 0xDE000D, 0x0057A8, 0x007B28, 0x95B90B, 0xFEC400, 0xE76318, 0x300F06, 0x010101],
+      name: 'Lego',
+    }
   ];
   var paletteIdx = 0;
-  var palette = palettes[paletteIdx];
+  var curPalette = palettes[paletteIdx];
 
   var buildPalettes = function() {
     var elem = document.getElementById('palettes');
     var html = '';
     for (var paletteIdx in palettes) {
-      for (var colorIdx in palettes[paletteIdx]) {
-        html += '<span style="width:20px; height:20px;background-color:#' + palettes[paletteIdx][colorIdx].toString(16) + '; float:left;"></span>';
+      var palette = palettes[paletteIdx];
+      html += '<div style="height:20px;">';
+      html += '<input ' + (palette.default ? 'checked' : '') + ' style="float:left" type="radio" name="palette" value="' + paletteIdx + '" />'
+      if (palette.default) {
+        curPalette = palette;
       }
+      for (var colorIdx in palette.colors) {
+        var color = palette.colors[colorIdx];
+        var hexLiteral = color.toString(16);
+        hexLiteral = '0000000'.substr(0, 6 - hexLiteral.length) + hexLiteral;
+        html += '<span style="width:20px; height:20px;background-color:#' + hexLiteral + '; float:left;"></span>';
+      }
+      html += '( ' + palettes[paletteIdx].name + ' )';
+      html += '</div>'
     }
     elem.innerHTML = html;
+    var inputs = elem.querySelectorAll('[name="palette"]');
+    for (var i = 0; i<inputs.length; i++) {
+      inputs[i].addEventListener('change', refresh);
+    }
   }
 
   function getStickyWidthElem() {
@@ -202,6 +225,7 @@ function SNShop() {
   }
 
   var refresh = this.refresh = function () {
+    // console.log('refreshing');
     stickyNoteWidth = parseInt(document.getElementById('sticky-width').value);
                       stickyNoteHeight = parseInt(document.getElementById('sticky-height').value);
 
@@ -219,6 +243,8 @@ function SNShop() {
                  'ycrcb': colorDiff_YCbCr,
                  'rgb-linear': colorDiff_linear,
                 }[colorCompareAlgoName];
+
+    curPalette = palettes[parseInt(document.querySelector('[name="palette"]:checked').value)];
 
     refreshPreview();
     document.getElementById('dim-in-stickynotes').innerHTML = '(' + ~~(img.width/stickyNoteWidth) + 'x' + ~~(img.height/stickyNoteHeight) + ')';
@@ -362,8 +388,8 @@ function SNShop() {
   function mapToStickyNoteColor(color) {
     var min = Infinity;
     var res = color;
-    for (var i = 0; i<palette.length; i++) {
-      var snColor = palette[i];
+    for (var i = 0; i<curPalette.colors.length; i++) {
+      var snColor = curPalette.colors[i];
       var diff = colorDiff(snColor, color);
       if (diff < min) {
         min = diff;
