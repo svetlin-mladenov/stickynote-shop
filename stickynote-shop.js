@@ -242,6 +242,8 @@ function SNShop() {
     colorDiff = {'luma': colorDiff_luma,
                  'ycrcb': colorDiff_YCbCr,
                  'rgb-linear': colorDiff_linear,
+                 'Lab': colorDiff_lab,
+                 'LabLightness': colorDiff_lablightness,
                 }[colorCompareAlgoName];
 
     curPalette = palettes[parseInt(document.querySelector('[name="palette"]:checked').value)];
@@ -387,7 +389,7 @@ function SNShop() {
 
   function mapToStickyNoteColor(color) {
     var min = Infinity;
-    var res = color;
+    var res = 0xFF0000;
     for (var i = 0; i<curPalette.colors.length; i++) {
       var snColor = curPalette.colors[i];
       var diff = colorDiff(snColor, color);
@@ -435,6 +437,58 @@ function SNShop() {
   var ycbcr_cb = rgb_g;
   var ycbcr_cr = rgb_b;
 
+  function rgb_to_xyz(rgb) {
+    // source http://www.easyrgb.com/index.php?X=MATH&H=02#text2
+    var var_R = ( rgb_r(rgb) / 255 );        //R from 0 to 255
+    var var_G = ( rgb_g(rgb) / 255 );        //G from 0 to 255
+    var var_B = ( rgb_b(rgb) / 255 );        //B from 0 to 255
+
+    if ( var_R > 0.04045 ) var_R = Math.pow( ( var_R + 0.055 ) / 1.055 , 2.4);
+    else                   var_R = var_R / 12.92;
+    if ( var_G > 0.04045 ) var_G = Math.pow( ( var_G + 0.055 ) / 1.055 , 2.4);
+    else                   var_G = var_G / 12.92;
+    if ( var_B > 0.04045 ) var_B = Math.pow( ( var_B + 0.055 ) / 1.055 , 2.4);
+    else                   var_B = var_B / 12.92;
+
+    var_R = var_R * 100;
+    var_G = var_G * 100;
+    var_B = var_B * 100;
+
+    //Observer. = 2°, Illuminant = D65
+    X = var_R * 0.4124 + var_G * 0.3576 + var_B * 0.1805;
+    Y = var_R * 0.2126 + var_G * 0.7152 + var_B * 0.0722;
+    Z = var_R * 0.0193 + var_G * 0.1192 + var_B * 0.9505;
+
+    return [X, Y, Z];
+  }
+
+  function xyz_to_lab(xyz) {
+    var ref_X = 95.047, ref_Y = 100.000, ref_Z = 108.883;
+    var X = xyz[0], Y = xyz[1], Z = xyz[2];
+    var_X = X / ref_X ;         //ref_X =  95.047   Observer= 2°, Illuminant= D65
+    var_Y = Y / ref_Y ;         //ref_Y = 100.000
+    var_Z = Z / ref_Z ;         //ref_Z = 108.883
+
+    if ( var_X > 0.008856 ) var_X = Math.pow(var_X, ( 1/3 ));
+    else                    var_X = ( 7.787 * var_X ) + ( 16 / 116 );
+    if ( var_Y > 0.008856 ) var_Y = Math.pow(var_Y , ( 1/3 ));
+    else                    var_Y = ( 7.787 * var_Y ) + ( 16 / 116 );
+    if ( var_Z > 0.008856 ) var_Z = Math.pow(var_Z , ( 1/3 ));
+    else                    var_Z = ( 7.787 * var_Z ) + ( 16 / 116 );
+
+    L = ( 116 * var_Y ) - 16;
+    a = 500 * ( var_X - var_Y );
+    b = 200 * ( var_Y - var_Z );
+
+    return [L, a, b];
+  }
+
+  function rgb_to_lab(rgb) {
+    var xyz = rgb_to_xyz(rgb);
+    var lab = xyz_to_lab(xyz);
+    return lab;
+  }
+
   function abs(x) {
     return Math.abs(x);
   }
@@ -453,6 +507,16 @@ function SNShop() {
     b = rgb_to_ycbcr(b_rgb);
 
     return abs(ycbcr_y(a) - ycbcr_y(b));
+  }
+  function colorDiff_lab(a_rgb, b_rgb) {
+    var a = rgb_to_lab(a_rgb);
+    var b = rgb_to_lab(b_rgb);
+    return Math.sqrt( Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2) );
+  }
+  function colorDiff_lablightness(a_rgb, b_rgb) {
+    var a = rgb_to_lab(a_rgb);
+    var b = rgb_to_lab(b_rgb);
+    return Math.abs(a[0] - b[0]);
   }
   var colorDiff = colorDiff_luma;
 
